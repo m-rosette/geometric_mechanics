@@ -269,7 +269,7 @@ def part1(printing=True):
     se2_plot(np.stack([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val]), 
              labels=['g', 'h', 'gh', 'hg', 'g relative to h', 'h relative to g'], 
              xlim=(-2, 3), ylim=(-2, 3), 
-             title="Relative Positions of g and h")
+             title="Part 1: Relative Positions of g and h")
     return np.array([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val])
 
 def part2(printing=True):
@@ -333,7 +333,7 @@ def part2(printing=True):
     se2_plot(np.stack([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val]), 
              labels=['g', 'h', 'gh', 'hg', 'g relative to h', 'h relative to g'], 
              xlim=(-2, 3), ylim=(-2, 3), 
-             title="Relative Positions of g and h")
+             title="Part 2: Relative Positions of g and h")
 
     return np.array([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val])
 
@@ -416,4 +416,4 @@ if __name__ == '__main__':
     except ValueError as e:
         print(e)
 
-    part3(printing=False)
+    part3(printing=True)
