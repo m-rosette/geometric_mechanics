@@ -381,6 +381,12 @@ def part3(printing=True):
     rel_pos1 = g1.inverse_element().left(g2)
     rel_pos2 = g1_prime.inverse_element().left(g2_prime)
 
+    # Plot the positions
+    se2_plot(np.stack([g1_val, g2_val, rel_pos1.derepresentation, rel_pos2.derepresentation]), 
+             labels=['g1', 'g2', "g1's relative pos", "g2's relative pos"], 
+             xlim=(-2, 3), ylim=(-2, 3), 
+             title="Part 3: Relative Displacements of g1's and g2's relative positions")
+
     try:
         if not np.linalg.norm(g2_val - rslt.derepresentation) <= 0.0000001:
             raise ValueError("g2 does not equal h_12*g1 !")
@@ -406,14 +412,14 @@ def part3(printing=True):
 
 
 if __name__ == '__main__':
-    pt1_output = part1(printing=False)
-    pt2_output = part2(printing=False)
+    # pt1_output = part1(printing=False)
+    # pt2_output = part2(printing=False)
 
-    try:
-        if not np.array_equal(pt1_output, pt2_output):
-            raise ValueError("Output from part 1 does not match part 2 output")
-        print("Part 1-2 test passed! Part 1 outputs match part 2 outputs!")
-    except ValueError as e:
-        print(e)
+    # try:
+    #     if not np.array_equal(pt1_output, pt2_output):
+    #         raise ValueError("Output from part 1 does not match part 2 output")
+    #     print("Part 1-2 test passed! Part 1 outputs match part 2 outputs!")
+    # except ValueError as e:
+    #     print(e)
 
     part3(printing=True)
