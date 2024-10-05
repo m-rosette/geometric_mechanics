@@ -90,13 +90,13 @@ class GroupElement:
         """
         return self.group.element(self.group.inverse_operation(self.value))
     
-    def adjoint_action(self, value):
+    def AD(self, element):
         """Compute the adjoint action of another group element."""
-        return self.value @ value @ self.inverse_element()
+        return self.group.element(self.value @ element.value @ self.inverse_element().value)
 
-    def adjoint_inverse_action(self, value):
+    def AD_inv(self, element):
         """Compute the adjoint-inverse action of another group element."""
-        return self.inverse_element() @ value @ self.value    
+        return self.group.element(self.inverse_element().value @ element.value @ self.value)
     
 class RepresentationGroup(Group):
     def __init__(self, representation_function, derepresentation_function, identity) -> None:
@@ -155,32 +155,16 @@ class RepresentationGroupElement(GroupElement):
         """Return the derepresentation of the group element."""
         return self.group.derepresentation(self.value)
 
-def inverse_test():
-    """Testing inverse function against the examples from Figure 1.19
-    """
-    g1 = 3
-    g2 = 6
-    identity = 1
-
+def product_scale_shift_test():
     def inv_func(input):
         return 1 / input
 
-    group = Group(np.multiply, identity, inverse_operation=inv_func)
-
-    g3_inv = group.element(g2).left(group.element(g1).inverse_element())
-
-    print(g3_inv.value)
-
-def inv_func(input):
-    return 1 / input
-
-def product_scale_shift():
     def scale_shift(input1, input2):
         return np.array([input1[0] * input2[0], input1[1] + input2[1]])
 
     def scale_shift_inverse(input1, input2):
         return np.array([input1[0] / input2[0], input1[1] - input2[1]])
-    
+        
     g1 = np.array([3, -1])
     g2 = np.array([1/2, 3/2])
     identity = np.array([1, 0])
@@ -193,105 +177,167 @@ def product_scale_shift():
     print(g3.value)
     print(g3_inv.value)
 
-def rot(theta):
-     return np.array([[np.cos(theta[2]), -np.sin(theta[2])],
-                     [np.sin(theta[2]), np.cos(theta[2])]])
-
-def trans_rot_se2(group_element):
-    return np.array([[np.cos(group_element[2]), -np.sin(group_element[2]), group_element[0]],
-                    [np.sin(group_element[2]), np.cos(group_element[2]), group_element[1]],
-                    [0, 0, 1]])
-
-def transform(input1, input2):
-    top_left = input1[:2, :2] @ input2[:2, :2]
-    top_right = input1[:2, :2] @ input2[:2, 2] + input1[:2, 2]
-
-    output = np.eye(3)
-    output[:2, :2] = top_left
-    output[:2, 2] = top_right
-    return output
-
-def extract_se2(trans_matrix):
-    theta = np.arccos(trans_matrix[0, 0])
-    x = trans_matrix[0, 2]
-    y = trans_matrix[1, 2]
-    return np.array([x, y, theta])
-
 def se2_plot(data, labels, xlim=(0, 3), ylim=(0, 3), title=None):
     # Define primary colors (RGB)
     primary_colors = ['red', 'green', 'blue', 'magenta', 'black', 'orange', 'yellow', 'cyan']
 
     # Ensure there are enough colors for the number of arrows
     num_arrows = data.shape[0]
-    colors = primary_colors[:num_arrows] # Select the first `num_arrows` primary colors
+    colors = primary_colors[:num_arrows]  # Select the first `num_arrows` primary colors
 
     # Create the plot
     plt.figure()
 
     # Plot the quiver with the primary colors for each arrow
     quiver = plt.quiver(data[:, 0], data[:, 1], 
-    np.cos(data[:, 2]), np.sin(data[:, 2]), 
-    color=colors, scale=20, headwidth=3, headlength=5, headaxislength=4)
+                        np.cos(data[:, 2]), np.sin(data[:, 2]), 
+                        color=colors, scale=20, headwidth=3, headlength=5, headaxislength=4)
 
     # Create legend entries by using dummy points with the same color as each arrow
     for i, label in enumerate(labels):
         plt.scatter([], [], color=colors[i], label=label)
 
-        # Add legend
-        plt.legend()
+    # Add legend
+    plt.legend()
 
-        # Labels, grid, and limits
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.grid(True)
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        plt.title(title)
+    # Labels, grid, and limits
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.grid(True)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    plt.title(title)
 
     # Show the plot
     plt.show()
 
-def se2_example():
+def part1(printing=True):
+    def trans_rot_se2_representation(group_element):
+        return np.array([[np.cos(group_element[2]), -np.sin(group_element[2]), group_element[0]],
+                        [np.sin(group_element[2]), np.cos(group_element[2]), group_element[1]],
+                        [0, 0, 1]])
 
-    g = np.array([0, 1, -np.pi/4])
-    h = np.array([1, 2, -np.pi/2])
+    def se2_derepresentation(trans_matrix):
+        return np.array([trans_matrix[0, 2], trans_matrix[1, 2], np.arctan2(trans_matrix[1, 0], trans_matrix[0, 0])])  # Using atan2 for angle 
 
-    g_trans_rot = trans_rot_se2(g)
-    h_trans_rot = trans_rot_se2(h)
+    def transform(input1, input2):
+        top_left = input1[:2, :2] @ input2[:2, :2]
+        top_right = input1[:2, :2] @ input2[:2, 2] + input1[:2, 2]
+
+        output = np.eye(3)
+        output[:2, :2] = top_left
+        output[:2, 2] = top_right
+        return output
+
+    g_val = np.array([0, 1, -np.pi/4])
+    h_val = np.array([1, 2, -np.pi/2])
+
+    g = trans_rot_se2_representation(g_val)
+    h = trans_rot_se2_representation(h_val)
 
     identity = np.eye(3)
 
-    group = Group(transform, identity)
+    group = Group(transform, identity, np.linalg.inv)
 
-    gh_trans_rot = group.element(g_trans_rot).left(group.element(h_trans_rot))
-    gh = extract_se2(gh_trans_rot.value)
-    hg_trans_rot = group.element(g_trans_rot).right(group.element(h_trans_rot))
-    hg = extract_se2(hg_trans_rot.value)
+    gh = group.element(g).left(group.element(h))
+    gh_val = se2_derepresentation(gh.value)
+    hg = group.element(g).right(group.element(h))
+    hg_val = se2_derepresentation(hg.value)
 
-    se2_plot(np.stack([g, h, gh, hg]), labels=['g', 'h', 'gh', 'hg'], xlim=(-1, 3), ylim=(-1, 3))
+    # PART 3 - Illustrating the relative positions
+    # Compute g relative to h: h_inv * g
+    h_inv = group.element(h).inverse_element()
+    g_relative_to_h = h_inv.left(group.element(g))
+    g_relative_to_h_val = se2_derepresentation(g_relative_to_h.value)
 
-def represenatation_test():
-    def rotation_matrix(theta):
-        return np.array([[np.cos(theta), -np.sin(theta)], 
-                        [np.sin(theta),  np.cos(theta)]])
+    # Compute h relative to g: g_inv * h
+    g_inv = group.element(g).inverse_element()
+    h_relative_to_g = g_inv.left(group.element(h))
+    h_relative_to_g_val = se2_derepresentation(h_relative_to_g.value)
+
+    if printing:
+        print('PART 1 OUTPUT:')
+        print(f'g = {g_val}')
+        print(f'h = {h_val}')
+        print(f'gh = {gh_val}')
+        print(f'hg = {hg_val}')
+        print(f'g relative to h = {g_relative_to_h_val}')
+        print(f'h relative to g = {h_relative_to_g_val}')
+        print('\n')
+
+    # Plot the relative positions
+    se2_plot(np.stack([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val]), 
+             labels=['g', 'h', 'gh', 'hg', 'g relative to h', 'h relative to g'], 
+             xlim=(-2, 3), ylim=(-2, 3), 
+             title="Relative Positions of g and h")
+    return np.array([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val])
+
+def part2(printing=True):
+    def transform(input1, input2):
+        top_left = input1[:2, :2] @ input2[:2, :2]
+        top_right = input1[:2, :2] @ input2[:2, 2] + input1[:2, 2]
+
+        output = np.eye(3)
+        output[:2, :2] = top_left
+        output[:2, 2] = top_right
+        return output
     
-    def scalar_to_square_mat(scalar):
-        return np.array([[1, scalar],
-                         [0, 1]])
-    
-    def coord_to_mat(coord):
-        return np.array([[1, 0, coord[0]],
-                         [0, 1, coord[1]],
-                         [0, 0, 1]])
-    
-    def mat_to_coord(matrix):
-        return [matrix[0, 2], matrix[1, 2]]
-    
-    def coord_add(input1, input2):
-        return np.array([[1, 0, input1[0, 2] + input2[0, 2]],
-                         [0, 1, input1[1, 2] + input2[1, 2]],
-                         [0, 0, 1]])
-    
+    def rep(x):
+        # Returns a 3x3 transformation matrix based on the input parameters
+        return np.array([[np.cos(x[2]), -np.sin(x[2]), x[0]],
+                         [np.sin(x[2]),  np.cos(x[2]), x[1]],
+                         [0,             0,              1]])
+
+    def derep(x):
+        return np.array([x[0, 2], x[1, 2], np.arctan2(x[1, 0], x[0, 0])])  # Using atan2 for angle 
+
+    g_val = np.array([0, 1, -np.pi/4])
+    h_val = np.array([1, 2, -np.pi/2])
+    identity = np.eye(3)
+
+    # Create a representation group
+    rep_group = RepresentationGroup(rep, identity=identity, derepresentation_function=derep)
+    rep_group.operation = transform
+
+    # Create representation group elements
+    g = RepresentationGroupElement(rep_group, g_val)
+    h = RepresentationGroupElement(rep_group, h_val)
+
+    gh = g.left(h)
+    gh_val = gh.derepresentation
+    hg = g.right(h)
+    hg_val = hg.derepresentation
+
+    # PART 3 - Illustrating the relative positions
+    # Compute g relative to h: h_inv * g
+    h_inv = h.inverse_element()
+    g_relative_to_h = h_inv.left(g)
+    g_relative_to_h_val = g_relative_to_h.derepresentation
+
+    # Compute h relative to g: g_inv * h
+    g_inv = g.inverse_element()
+    h_relative_to_g = g_inv.left(h)
+    h_relative_to_g_val = h_relative_to_g.derepresentation
+
+    if printing:
+        print('PART 2 OUTPUT:')
+        print(f'g = {g_val}')
+        print(f'h = {h_val}')
+        print(f'gh = {gh_val}')
+        print(f'hg = {hg_val}')
+        print(f'g relative to h = {g_relative_to_h_val}')
+        print(f'h relative to g = {h_relative_to_g_val}')
+        print('\n')
+
+    # Plot the relative positions
+    se2_plot(np.stack([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val]), 
+             labels=['g', 'h', 'gh', 'hg', 'g relative to h', 'h relative to g'], 
+             xlim=(-2, 3), ylim=(-2, 3), 
+             title="Relative Positions of g and h")
+
+    return np.array([g_val, h_val, gh_val, hg_val, g_relative_to_h_val, h_relative_to_g_val])
+
+def part3(printing=True):  
     def rep(x):
         # Returns a 3x3 transformation matrix based on the input parameters
         return np.array([[np.cos(x[2]), -np.sin(x[2]), x[0]],
@@ -300,34 +346,74 @@ def represenatation_test():
     def derep(x):
         return np.array([x[0, 2], x[1, 2], np.arctan2(x[1, 0], x[0, 0])])  # Using atan2 for angle
 
-    # Create a representation group for 2D rotations
-    rep_group = RepresentationGroup(rep, identity=np.eye(3), derepresentation_function=derep)  # identity = rotation by 0 (theta = 0)
+    # Create a representation group
+    rep_group = RepresentationGroup(rep, identity=np.eye(3), derepresentation_function=derep)
 
+    # PART 3 - DELIVERABLE 1
     g1_val = np.array([0, 1, -np.pi / 4]) 
     g2_val = np.array([1, 2, -np.pi / 2]) 
 
-    # Example 4: Pass a single scalar value to generate the matrix
+    # Create representation group elements
     g1 = RepresentationGroupElement(rep_group, g1_val)
     g2 = RepresentationGroupElement(rep_group, g2_val)
 
-    # Combine g1 and g2
+    # Compute the relative position h21 of g2 with respect to g1
     h21 = g1.inverse_element().left(g2)
 
-    # TODO fix adjoint operation - there is an issue with the matrix multiplication
+    # Compute the adjoint at g1 of this relative position
+    h12 = g1.AD(h21)
 
-    h12 = g1.adjoint_action(h21)
+    # Demonstrate that the left action of the adjointed relative position on g1 brings it to g2
+    rslt = g1.right(h12)
 
+    # PART 3 - DELIVERABLE 2
+    h1_val = np.array([-1, 0, np.pi/2])
+    h1 = RepresentationGroupElement(rep_group, h1_val)
 
-    rslt = g1.left(h12)
+    # Move g1 by h1
+    g1_prime = g1.left(h1)
 
+    # Move g2 by h2 = ADh_inv(h12)h1
+    h2 = h21.AD_inv(h1)
+    g2_prime = g2.left(h2)
 
+    # Illustrate that g1_prime and g2_prime preserves the relative displacement between the two elements 
+    rel_pos1 = g1.inverse_element().left(g2)
+    rel_pos2 = g1_prime.inverse_element().left(g2_prime)
 
-    print('These values should be equal:')
-    print(f'g2 = {g2_val}')
-    print(f'h_12 * g1 = {np.round(rslt.derepresentation, 3)}')
+    try:
+        if not np.linalg.norm(g2_val - rslt.derepresentation) <= 0.0000001:
+            raise ValueError("g2 does not equal h_12*g1 !")
+        print("Part 3.1 test passed! g2 equals h_12*g1 !")
+    except ValueError as e:
+        print(e)
+
+    try:
+        if not np.linalg.norm(rel_pos1.derepresentation - rel_pos2.derepresentation) <= 0.0000001:
+            raise ValueError("g1 * g2 does not equal g1' * g2'!")
+        print("Part 3.2 test passed! g1 * g2 equals g1' * g2'!")
+    except ValueError as e:
+        print(e)
+
+    if printing:
+        print('PART 3 OUTPUT:')
+        print('These values should be equal:')
+        print(f'g2 = {g2_val}')
+        print(f'h_12 * g1 = {rslt.derepresentation}')
+        print('These values should also be equal:')
+        print(f'g1 * g2 = {np.round(rel_pos1.derepresentation, 5)}')
+        print(f'g1` * g2` = {np.round(rel_pos2.derepresentation, 5)}')
+
 
 if __name__ == '__main__':
-    # product_scale_shift()
-    # se2_example()
+    pt1_output = part1(printing=False)
+    pt2_output = part2(printing=False)
 
-    represenatation_test()
+    try:
+        if not np.array_equal(pt1_output, pt2_output):
+            raise ValueError("Output from part 1 does not match part 2 output")
+        print("Part 1-2 test passed! Part 1 outputs match part 2 outputs!")
+    except ValueError as e:
+        print(e)
+
+    part3(printing=False)
