@@ -412,7 +412,7 @@ def part3(printing=True):
 
 
 if __name__ == '__main__':
-    # pt1_output = part1(printing=False)
+    pt1_output = part1(printing=True)
     # pt2_output = part2(printing=False)
 
     # try:
@@ -422,4 +422,4 @@ if __name__ == '__main__':
     # except ValueError as e:
     #     print(e)
 
-    part3(printing=True)
+    # part3(printing=True)
