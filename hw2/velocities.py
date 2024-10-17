@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
-sys.path.append("/home/marcus/classes/rob541/geometric_mechanics/")
-from hw1.groups import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
-
+# sys.path.append("/home/marcus/classes/rob541/geometric_mechanics/")
+# from hw1.groups import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
+from groups_hw2 import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
 
 class TangentVector:
     def __init__(self, value, configuration) -> None:
@@ -100,16 +100,29 @@ class TangentVector:
             raise TypeError("Right division is only supported for square matrices with dimensions matching the vector.")
     
 class GroupTangentVector(TangentVector):
-    def __init__(self, configuration):
+    def __init__(self, value, configuration):
         # Check if the configuration is a GroupElement
         if not isinstance(configuration, GroupElement):
             raise TypeError("Configuration must be a GroupElement.")
         
-        # # Call the parent class constructor
-        # super().__init__(value, configuration)
+        # Call the parent class constructor
+        super().__init__(value, configuration)
         
         # Copy the Group property from the GroupElement configuration
         self.group = configuration.group
+
+class LieGroupElement(GroupElement):
+    # (T_hL_g): g_dot -> J_Lg(h)g_dot
+    # (T_hR_g): g_dot -> J_Rg(h)g_dot
+
+    pass
+
+class RepLieGroupElement:
+    # Lifted actions
+    # (T_hL_g): g_dot -> self.rep @ g_dot.rep
+    # (T_hR_g): g_dot -> g_dot.rep @ self.rep
+
+    pass
 
 class GroupwiseBasis:
     def __init__(self, group_elements):
@@ -187,6 +200,31 @@ def compute_jacobian(func, config):
     # Construct and return a TangentVector
     return TangentVector(value=jacobian_matrix, configuration=config)
 
+def plot_vector_field(xy, vectors, vectors2=None, title='Arrows Representing Polar Bases Vectors'):
+    # Plot the arrows using quiver
+    plt.figure(figsize=(6,6))
+    plt.quiver(xy[:, 0], xy[:, 1], 
+            vectors[:, 0], vectors[:, 1], 
+            angles='xy', scale_units='xy', scale=3, color='blue')
+    
+    if vectors2 is not None:
+        # Plot vectors2 in red
+        plt.quiver(xy[:, 0], xy[:, 1], 
+                vectors2[:, 0], vectors2[:, 1], 
+                angles='xy', scale_units='xy', scale=3, color='red', label='Y Left Vectors')
+
+    # Add grid, axis labels, and set equal axes scaling
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlim(-3, 3)
+    plt.ylim(-3, 3)
+    plt.grid(True)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+
+    plt.title(f'{title}')
+    plt.show()
+
 def part2():
     def rect_to_polar(point, delta=0):
         """
@@ -209,25 +247,6 @@ def part2():
         
         return transformed_point.flatten()
     
-    def plot_vector_field(xy, vectors, title='Arrows Representing Polar Bases Vectors'):
-        # Plot the arrows using quiver
-        plt.figure(figsize=(6,6))
-        plt.quiver(xy[:, 0], xy[:, 1], 
-                vectors[:, 0], vectors[:, 1], 
-                angles='xy', scale_units='xy', scale=3, color='blue')
-
-        # Add grid, axis labels, and set equal axes scaling
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.xlim(-3, 3)
-        plt.ylim(-3, 3)
-        plt.grid(True)
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.xlabel('X-axis')
-        plt.ylabel('Y-axis')
-
-        plt.title(f'{title}')
-        plt.show()
-    
     # Step 1: Generate a grid of points
     x = y = np.linspace(-2, 2, 5)
     X, Y = np.meshgrid(x, y)
@@ -239,12 +258,12 @@ def part2():
     # Step 3: Combine into xy array
     configuration = np.vstack((X_flat, Y_flat)).T
 
-    # # Step 4: Compute vector values at each configuration
-    # # DELIVERABLE 1
+    # Step 4: Compute vector values at each configuration
+    # DELIVERABLE 1
     polar_derivative_pts = np.stack([derivative_in_direction(rect_to_polar, config).value for config in configuration])
     plot_vector_field(configuration, polar_derivative_pts, title='Polar Basis Field - derivative')
 
-    # TODO Step 5: Equivelant Jacobian mapping
+    # Step 5: Equivelant Jacobian mapping
     # DELIVERABLE 2
     polar_jacobian_pts = np.array([compute_jacobian(rect_to_polar, config).value for config in configuration])
     plot_vector_field(configuration, polar_jacobian_pts, title='Polar Basis Field - Jacobian')
@@ -255,44 +274,70 @@ def part3():
     # with the group actions of elements that are δ away from the identity in single components.
 
     # Page 152
-    # TODO: (b) the partial derivative with respect to the left action L_g, evaluated at the group element h
-    # TODO: (c) the partial derivative with respect to the riht action R_h, evaluated at the group element g
+    # (b) the partial derivative with respect to the left action L_g, evaluated at the group element h
+    # (c) the partial derivative with respect to the riht action R_h, evaluated at the group element g
 
-    def scale_shift(input1, input2):
-        return np.array([input1[0] * input2[0], input1[1] + input2[1]])
-    
     def rep(x):
-        return np.array([[1, 0, x[0]],
-                         [0, 1, x[1]],
-                         [0, 0, 1]])
+        return np.array([[x[0], x[1]],
+                         [0, 1]])
     
     def derep(x):
-        return np.array([x[0, 1], x[1, 1]])
+        return np.array([x[0, 0], x[0, 1]])
 
-    g_val = np.array([0, 1])
-    h_val = np.array([1, 0])
     identity = np.eye(2)
-    
+
     # Create a representation group
     rep_group = RepresentationGroup(rep, identity=identity, derepresentation_function=derep)
-    rep_group.operation = scale_shift
 
-    # Create representation group elements
-    g = RepresentationGroupElement(rep_group, g_val)
-    h = RepresentationGroupElement(rep_group, h_val)
+    # Set up a vector field grid similar to part2
+    x = y = np.linspace(-2, 2, 5)
+    X, Y = np.meshgrid(x, y)
+    X_flat = X.ravel()
+    Y_flat = Y.ravel()
+    configuration = np.vstack((X_flat, Y_flat)).T
 
-    # Create a list of group elements for the basis
-    basis_elements = GroupTangentVector()
+    def fx_left(h_val, delta):
+        g_val = np.array([delta, 0])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        gh = g.left(h)
+        gh_val = gh.derepresentation
+        return gh_val
+    
+    def fy_left(h_val, delta):
+        g_val = np.array([0, delta])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        gh = g.left(h)
+        gh_val = gh.derepresentation
+        return gh_val
 
-    # Instantiate the GroupwiseBasis class
-    groupwise_basis = GroupwiseBasis(basis_elements)
+    def fx_right(h_val, delta):
+        g_val = np.array([delta, 0])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        gh = g.right(h)
+        gh_val = gh.derepresentation
+        return gh_val
+    
+    def fy_right(h_val, delta):
+        g_val = np.array([0, delta])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        gh = g.right(h)
+        gh_val = gh.derepresentation
+        return gh_val
+    
+    x_left_pts = np.stack([derivative_in_direction(fx_left, config).value for config in configuration])
+    y_left_pts = np.stack([derivative_in_direction(fy_left, config).value for config in configuration])
+    x_right_pts = np.stack([derivative_in_direction(fx_right, config).value for config in configuration])
+    y_right_pts = np.stack([derivative_in_direction(fy_right, config).value for config in configuration])
 
-    # Evaluate the groupwise basis at the element h
-    vector_basis = groupwise_basis(h)
+    plot_vector_field(configuration, x_left_pts, vectors2=y_left_pts, title='Semi-Direct Product (Left Action)')
+    plot_vector_field(configuration, x_right_pts, vectors2=y_right_pts, title='Semi-Direct Product (Right Action)')
 
-    print("Groupwise Basis Vectors at h:")
-    print(vector_basis)
+
 
 if __name__ == '__main__':
-    part2()
-    # part3()
+    # part2()
+    part3()
