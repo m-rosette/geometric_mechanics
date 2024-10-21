@@ -336,8 +336,54 @@ def part3():
     plot_vector_field(configuration, x_left_pts, vectors2=y_left_pts, title='Semi-Direct Product (Left Action)')
     plot_vector_field(configuration, x_right_pts, vectors2=y_right_pts, title='Semi-Direct Product (Right Action)')
 
+def part4():
+    def rep(x):
+        return np.array([[x[0], x[1]],
+                         [0, 1]])
+    
+    def derep(x):
+        return np.array([x[0, 0], x[0, 1]])
+
+    identity = np.eye(2)
+
+    # Create a representation group
+    rep_group = RepresentationGroup(rep, identity=identity, derepresentation_function=derep)
+
+    # Set up a vector field grid similar to part2
+    x = y = np.linspace(-2, 2, 5)
+    X, Y = np.meshgrid(x, y)
+    X_flat = X.ravel()
+    Y_flat = Y.ravel()
+    configuration = np.vstack((X_flat, Y_flat)).T
+    
+    def fx_left(h_val, delta):
+        g_val = np.array([delta, 0])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        Lgh = g.left_lifted_action(h)
+        return Lgh
+    
+    def fy_left(h_val, delta):
+        g_val = np.array([0, delta])
+        g = RepresentationGroupElement(rep_group, g_val)
+        h = RepresentationGroupElement(rep_group, h_val)
+        Lgh = g.left_lifted_action(h)
+        return Lgh
+    
+    print(configuration[0])
+    test = fx_left(configuration[0], 0)
+    print(test)
+
+    # Compute the adjoint derivatives for both x and y directions
+    # x_adjoint_pts = np.stack([(fx_left, config).value for config in configuration])
+    # y_adjoint_pts = np.stack([derivative_in_direction(fy_adjoint, config).value for config in configuration])
+
+    # # Visualize the adjoint vector fields
+    # plot_vector_field(configuration, x_adjoint_pts, vectors2=y_adjoint_pts, title='Adjoint Vector Fields')
+
 
 
 if __name__ == '__main__':
     # part2()
     part3()
+    # part4()
