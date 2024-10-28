@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import numdifftools as nd
+from geo_classes.velocities import TangentVector
 
 
 class Group:
@@ -102,38 +103,48 @@ class GroupElement:
     def left_lifted(self, other):
         """
         Left lifted action: Th Lg
-        Takes two group elements and returns the Jacobian with respect to the current configuration.
+        Computes the tangent vector from the left action of 'self' on 'other' 
+        by numerically differentiating with respect to a small perturbation.
         """
-        # Function to compute the left action in terms of the numeric value of the group element
-        def left_numeric(other_value):
-            other_element = self.group.element(other_value)  # Convert numeric value back to group element
-            return self.left(other_element).value  # Extract the numeric value after applying the left action
+        def left_numeric(delta):
+            # Perturb 'other' by a small delta value
+            perturbed_value = other.value + delta
+            perturbed_element = self.group.element(perturbed_value)
+            return self.left(perturbed_element).value
 
-        # Compute the Jacobian of the left action with respect to the numeric value of `other`
+        # Use nd.Jacobian to differentiate with respect to perturbation delta
         jacobian = nd.Jacobian(left_numeric)
 
-        rep_group_ele = RepresentationGroupElement(self.group, self.value)
+        # Compute the Jacobian evaluated at zero perturbation (delta = 0)
+        # delta = np.zeros_like(other.value)
+        jacobian_at_zero = jacobian(self.value)
+
+        value = jacobian_at_zero @ other.value
         
-        # Pass the numerical value of `other` for differentiation
-        return self.group.element(np.dot(jacobian(other.value), rep_group_ele.derepresentation))
+        return TangentVector(value=value, configuration=other.value)
 
     def right_lifted(self, other):
         """
         Right lifted action: Th Rg
-        Takes two group elements and returns the Jacobian with respect to the current configuration.
+        Computes the tangent vector from the right action of 'self' on 'other' 
+        by numerically differentiating with respect to a small perturbation.
         """
-        # Function to compute the left action in terms of the numeric value of the group element
-        def right_numeric(other_value):
-            other_element = self.group.element(other_value)  # Convert numeric value back to group element
-            return self.right(other_element).value  # Extract the numeric value after applying the left action
+        def right_numeric(delta):
+            # Perturb 'other' by a small delta value
+            perturbed_value = other.value + delta
+            perturbed_element = self.group.element(perturbed_value)
+            return self.right(perturbed_element).value
 
-        # Compute the Jacobian of the left action with respect to the numeric value of `other`
+        # Use nd.Jacobian to differentiate with respect to perturbation delta
         jacobian = nd.Jacobian(right_numeric)
 
-        rep_group_ele = RepresentationGroupElement(self.group, self.value)
+        # Compute the Jacobian evaluated at zero perturbation (delta = 0)
+        delta = np.zeros_like(other.value)
+        jacobian_at_zero = jacobian(delta)
+
+        value = jacobian_at_zero @ other.value
         
-        # Pass the numerical value of `other` for differentiation
-        return self.group.element(np.dot(jacobian(other.value), rep_group_ele.derepresentation))
+        return TangentVector(value=value, configuration=other.value)
     
 class RepresentationGroup(Group):
     def __init__(self, representation_function, derepresentation_function, identity) -> None:

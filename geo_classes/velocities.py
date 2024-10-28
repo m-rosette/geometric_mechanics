@@ -3,7 +3,7 @@
 import numpy as np
 import numdifftools as nd
 
-from geo_classes.groups import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
+# from geo_classes.groups import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
 
 class TangentVector:
     def __init__(self, value, configuration) -> None:
@@ -94,59 +94,59 @@ class TangentVector:
         else:
             raise TypeError("Right division is only supported for square matrices with dimensions matching the vector.")
     
-class GroupTangentVector(TangentVector):
-    def __init__(self, value, configuration):
-        # Check if the configuration is a GroupElement
-        if not isinstance(configuration, GroupElement):
-            raise TypeError("Configuration must be a GroupElement.")
+# class GroupTangentVector(TangentVector):
+#     def __init__(self, value, configuration):
+#         # Check if the configuration is a GroupElement
+#         if not isinstance(configuration, GroupElement):
+#             raise TypeError("Configuration must be a GroupElement.")
         
-        # Call the parent class constructor
-        super().__init__(value, configuration)
+#         # Call the parent class constructor
+#         super().__init__(value, configuration)
         
-        # Copy the Group property from the GroupElement configuration
-        self.group = configuration.group
+#         # Copy the Group property from the GroupElement configuration
+#         self.group = configuration.group
 
-class LieGroupElement(GroupElement):
-    # (T_hL_g): g_dot -> J_Lg(h)g_dot
-    # (T_hR_g): g_dot -> J_Rg(h)g_dot
+# class LieGroupElement(GroupElement):
+#     # (T_hL_g): g_dot -> J_Lg(h)g_dot
+#     # (T_hR_g): g_dot -> J_Rg(h)g_dot
 
-    pass
+#     pass
 
-class RepLieGroupElement:
-    # Lifted actions
-    # (T_hL_g): g_dot -> self.rep @ g_dot.rep
-    # (T_hR_g): g_dot -> g_dot.rep @ self.rep
+# class RepLieGroupElement:
+#     # Lifted actions
+#     # (T_hL_g): g_dot -> self.rep @ g_dot.rep
+#     # (T_hR_g): g_dot -> g_dot.rep @ self.rep
 
-    pass
+#     pass
 
-class GroupwiseBasis:
-    def __init__(self, group_elements):
-        """Constructor that takes in a list of group elements."""
-        self.group_elements = group_elements
+# class GroupwiseBasis:
+#     def __init__(self, group_elements):
+#         """Constructor that takes in a list of group elements."""
+#         self.group_elements = group_elements
 
-    def scaled_group_action(self, scalar, g, h):
-        """Scaled group action function."""
-        # scaled_g = GroupElement(g.configuration * scalar)
-        scaled_g = g.value * scalar
-        return self.operation(scaled_g, h)
+#     def scaled_group_action(self, scalar, g, h):
+#         """Scaled group action function."""
+#         # scaled_g = GroupElement(g.configuration * scalar)
+#         scaled_g = g.value * scalar
+#         return self.operation(scaled_g, h)
 
-    def derivative_in_direction_of_group_action(self, g, h, direction='left'):
-        """Derivative in the direction of a group action."""
-        if direction == 'left':
-            # Create a lambda function for left action
-            func = lambda scalar: self.scaled_group_action(scalar, g, h)
-        elif direction == 'right':
-            # Implement right action if needed
-            func = lambda scalar: self.operation(h, GroupElement(g.configuration * scalar))
+#     def derivative_in_direction_of_group_action(self, g, h, direction='left'):
+#         """Derivative in the direction of a group action."""
+#         if direction == 'left':
+#             # Create a lambda function for left action
+#             func = lambda scalar: self.scaled_group_action(scalar, g, h)
+#         elif direction == 'right':
+#             # Implement right action if needed
+#             func = lambda scalar: self.operation(h, GroupElement(g.configuration * scalar))
 
-        # Use numdifftools to compute the gradient
-        gradient = nd.Gradient(func)
-        return gradient(0)
+#         # Use numdifftools to compute the gradient
+#         gradient = nd.Gradient(func)
+#         return gradient(0)
 
-    def __call__(self, h, direction='left'):
-        """Evaluate the groupwise basis at a given group element."""
-        vector_basis = []
-        for g in self.group_elements:
-            tangent_vector = self.derivative_in_direction_of_group_action(g, h, direction)
-            vector_basis.append(tangent_vector)
-        return np.array(vector_basis)
+#     def __call__(self, h, direction='left'):
+#         """Evaluate the groupwise basis at a given group element."""
+#         vector_basis = []
+#         for g in self.group_elements:
+#             tangent_vector = self.derivative_in_direction_of_group_action(g, h, direction)
+#             vector_basis.append(tangent_vector)
+#         return np.array(vector_basis)

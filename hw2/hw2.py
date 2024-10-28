@@ -8,7 +8,7 @@ import os
 
 sys.path.append("/home/marcus/classes/rob541/geometric_mechanics/")
 from geo_classes.groups import Group, GroupElement, RepresentationGroup, RepresentationGroupElement
-from geo_classes.velocities import TangentVector, GroupTangentVector, GroupwiseBasis
+from geo_classes.velocities import TangentVector
 
 
 def derivative_in_direction(differentiated_function, config):
@@ -170,14 +170,14 @@ def part4(representation_group, configuration):
     g_x = RepresentationGroupElement(representation_group, g_val_x)
     g_y = RepresentationGroupElement(representation_group, g_val_y)
 
-    x_left_pts = np.stack([g_x.left_lifted(group_element).derepresentation for group_element in group_elements])
-    y_left_pts = np.stack([g_y.left_lifted(group_element).derepresentation for group_element in group_elements])
+    x_left_pts = np.stack([g_x.left_lifted(group_element).value for group_element in group_elements])
+    y_left_pts = np.stack([g_y.left_lifted(group_element).value for group_element in group_elements])
 
-    x_right_pts = np.stack([g_x.right_lifted(group_element).derepresentation for group_element in group_elements])
-    y_right_pts = np.stack([g_y.right_lifted(group_element).derepresentation for group_element in group_elements])
+    x_right_pts = np.stack([g_x.right_lifted(group_element).value for group_element in group_elements])
+    y_right_pts = np.stack([g_y.right_lifted(group_element).value for group_element in group_elements])
 
-    plot_vector_field(configuration, x_left_pts, y_left_pts)
-    plot_vector_field(configuration, x_right_pts, y_right_pts)
+    plot_vector_field(configuration, x_left_pts, y_left_pts, title='Semi-Direct Product (Left Lifted)')
+    plot_vector_field(configuration, x_right_pts, y_right_pts, title='Semi-Direct Product (Right Lifted)')
 
 
 if __name__ == '__main__':
