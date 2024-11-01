@@ -110,7 +110,7 @@ class GroupElement:
             # Perturb 'other' by a small delta value
             perturbed_value = other.value + delta
             perturbed_element = self.group.element(perturbed_value)
-            return self.left(perturbed_element).value
+            return self.left(perturbed_element).value   
 
         # Use nd.Jacobian to differentiate with respect to perturbation delta
         jacobian = nd.Jacobian(left_numeric)
