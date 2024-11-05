@@ -48,26 +48,39 @@ class DiffKinematicChain(kc.KinematicChain):
         # identity element inserted before the first entry
         link_positions_with_base = [G.identity_element()] + self.link_positions
 
+        # Making an instance of the desired link
+        selected_link = self.link_positions[link_index - 1]
+
         # Loop from 1 to link_index (i.e., range(1, link_index+1) )
         for j in range(1, link_index + 1):
+            # Extract the current link position and joint axis
+            link_position = link_positions_with_base[j - 1]
+            joint_axis = self.joint_axes[j - 1]
 
             # create a transform g_rel that describes the position of the selected link relative the jth joint (which
             # is at the (j-1)th location in link_positions_with_base
-            g_rel = link_positions_with_base[j - 1]
+            g_rel = link_position.inverse * selected_link
 
             # use the Adjoint-inverse of this relative transformation to map the jth joint axis ( (j-1)th entry)
             # out to the end of the selected link in the link's body frame
-            J_joint = self.joint_axes[j - 1]
+            J_joint = g_rel.Ad_inv(joint_axis)
 
             # If the output_frame input is 'world', map the axis from the Lie algebra out to world coordinates
             if output_frame == 'world':
-                J_joint = g_rel.Ad_inv(J_joint)
+                J_joint = selected_link.TL(J_joint)
 
-            # If the output_frame input is 'body', use the adjoint of the link position to map the axis back to
-            # the identity
             elif output_frame == 'body':
+                # Return the initial adjoint inverse calculation
+                pass
+
+            # If the output_frame input is 'spatial', use the adjoint of the link position to map the axis back to
+            # the identity
+            elif output_frame == 'spatial':
                 # Use the adjoint of the link position to map the axis back to the identity
-                J_joint = g_rel.Ad(J_joint)
+                J_joint = selected_link.Ad(J_joint)
+            
+            else:
+                raise ValueError(f"output_frame supports, 'body', 'spatial' or 'world'. Your input: {output_frame}")
 
             # Insert the value of J_joint into the (j-1)th index of J
             J[:, j - 1] = J_joint.value[:num_rows]
@@ -98,21 +111,34 @@ class DiffKinematicChain(kc.KinematicChain):
         # identity element inserted before the first entry
         link_positions_with_base = [G.identity_element()] + self.link_positions
 
+        # Making an instance of the desired link
+        selected_link = self.link_positions[link_index - 1]
+
         # Loop from 1 to link_index (i.e., range(1, link_index+1) )
         for j in range(1, link_index + 1):
+            # Extract the current link position and joint axis
+            link_position = link_positions_with_base[j - 1]
+            joint_axis = self.joint_axes[j - 1]
 
             # use the Adjoint of the position of this joint to map its joint axis ( (j-1)th entry)
             # back to the identity of the group
-            J_joint = self.joint_axes[j - 1]
+            J_joint = link_position.Ad(joint_axis)
 
             # If the output_frame input is 'world', map the axis from the Lie algebra out to world coordinates
             if output_frame == 'world':
-                J_joint = link_positions_with_base[j].Ad(J_joint)
+                J_joint = selected_link.TR(J_joint)
 
             # If the output_frame input is 'body', use the adjoint-inverse of the link position to map the axis back to
             # the identity
             elif output_frame == 'body':
-                J_joint = link_positions_with_base[j].Ad_inv(J_joint)
+                J_joint = selected_link.Ad_inv(J_joint)
+
+            elif output_frame == 'spatial':
+                # Return the initial adjoint calculation
+                pass
+
+            else:
+                raise ValueError(f"output_frame supports, 'body', 'spatial' or 'world'. Your input: {output_frame}")
 
             # Insert the value of J_joint into the (j-1)th index of J
             J[:, j - 1] = J_joint.value[:num_rows]
@@ -123,38 +149,33 @@ class DiffKinematicChain(kc.KinematicChain):
 
         return J
 
-    def draw_Jacobian(self, ax, arrow_scale=3):
-        """ Draw the components of the last-requested Jacobian"""
+    def draw_Jacobian(self, ax, arrow_scale=2):
+        """ Draw the kinematic chain links with Jacobian vectors at the end of each link"""
 
         # Ensure that there is a last calculated Jacobian to draw
         if self.last_jacobian is None or self.jacobian_idx < 1:
             print("No Jacobian calculated. Please calculate the Jacobian first.")
             return
 
-        # Get the location of the last-requested link
-        link_position = self.link_positions[self.jacobian_idx - 1]
-        link_end = link_position.value[:2]  # Extract the xy components of the link's end position
+        # Plot Jacobian vectors at the end of each link
+        for i, link_position in enumerate(self.link_positions):
+            # Get the current link's position in xy (only the translational part)
+            link_end = link_position.value[:2]
+            
+            # Extract the Jacobian components corresponding to this link (only the x and y components)
+            jacobian_components = self.last_jacobian[:2, i]
 
-        # Use ut.column to make the link_end into a numpy column array
-        link_end_column = ut.column(link_end)  # Ensure link_end is a column vector
-
-        # Use np.tile to make a matrix in which each column is the coordinates of the link end
-        link_end_matrix = np.tile(link_end_column, (1, self.last_jacobian.shape[1]))
-
-        # Get the Jacobian components to draw arrows
-        jacobian_components = self.last_jacobian[:2, :]  # Get only the x and y components of the Jacobian
-
-        # Use ax.quiver to plot a set of arrows at the selected link end
-        ax.quiver(link_end_matrix[0, :], link_end_matrix[1, :],  # Starting points (x, y)
-                jacobian_components[0, :], jacobian_components[1, :],  # Direction (vx, vy)
-                angles='xy', scale_units='xy', scale=arrow_scale, color='r')  # Customize arrow properties
+            # Use ax.quiver to plot the Jacobian vector at the end of the link
+            ax.quiver(link_end[0], link_end[1],  # Starting point (x, y)
+                    jacobian_components[0], jacobian_components[1],  # Direction (vx, vy)
+                    angles='xy', scale_units='xy', scale=arrow_scale, color='r')
 
         # Set limits and labels for better visualization
         ax.set_xlim(-5, 5)
         ax.set_ylim(-5, 5)
         ax.set_xlabel('X-axis')
         ax.set_ylabel('Y-axis')
-        ax.set_title('Jacobian at Link End')
+        ax.set_title('Kinematic Chain with Jacobian Vectors')
 
         # Set the plot aspect ratio to 'equal'
         ax.set_aspect('equal')
@@ -192,10 +213,10 @@ def hw3_deliverables(num_plots, joint_angles, links, joint_axes):
         kc = DiffKinematicChain(links, joint_axes)
         kc.set_configuration(joint_angles[i])
         
-        J_Ad_inv = kc.Jacobian_Ad_inv(3, 'body')
+        J_Ad_inv = kc.Jacobian_Ad_inv(3, 'world')
         # print(J_Ad_inv)
 
-        # J_Ad = kc.Jacobian_Ad(3, 'body')
+        J_Ad = kc.Jacobian_Ad(3, 'world')
         # # print(J_Ad)
 
         kc.draw(ax[i])          # Draw the kinematic chain on the ith axis
